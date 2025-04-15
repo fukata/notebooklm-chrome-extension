@@ -1,6 +1,9 @@
 // ページが読み込まれた時の処理
 console.log('Content script loaded');
 
+// 初期値が設定されたかどうかを追跡するフラグ
+let initialPromptSet = false;
+
 // Angularのイベントをトリガーする関数
 function triggerAngularEvent(element, eventName) {
   const ngZone = window.ng?.getAngularTestability(element)?.getZone();
@@ -14,6 +17,23 @@ function triggerAngularEvent(element, eventName) {
     const event = new Event(eventName, { bubbles: true });
     element.dispatchEvent(event);
   }
+}
+
+// プロンプトを設定する関数
+function setInitialPrompt() {
+  if (initialPromptSet) return;
+
+  chrome.storage.sync.get(['initialPrompt'], (result) => {
+    if (result.initialPrompt) {
+      const promptInput = document.querySelector('.query-box-input');
+      if (promptInput) {
+        promptInput.value = result.initialPrompt;
+        // Angularの変更イベントをトリガー
+        triggerAngularEvent(promptInput, 'input');
+        initialPromptSet = true;
+      }
+    }
+  });
 }
 
 // 削除ボタンを追加する関数
@@ -109,6 +129,7 @@ const observer = new MutationObserver((mutations) => {
   mutations.forEach((mutation) => {
     if (mutation.addedNodes.length) {
       addDeleteButton();
+      setInitialPrompt();
     }
   });
 });
@@ -121,6 +142,7 @@ observer.observe(document.body, {
 
 // 初期実行
 addDeleteButton();
+setInitialPrompt();
 
 // メッセージをバックグラウンドスクリプトに送信
 chrome.runtime.sendMessage({ type: 'contentScriptLoaded' }, (response) => {

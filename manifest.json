@@ -15,5 +15,8 @@
       "matches": ["https://notebooklm.google.com/notebook/*"],
       "js": ["content.js"]
     }
-  ]
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
 } 
