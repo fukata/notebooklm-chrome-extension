@@ -36,6 +36,24 @@ function setInitialPrompt() {
   });
 }
 
+// リフレッシュボタンのクリックイベントを監視する関数
+function observeRefreshButton() {
+  const refreshButton = document.querySelector('.refresh-button');
+  if (refreshButton) {
+    refreshButton.addEventListener('click', () => {
+      const refreshButtons = document.querySelectorAll('.refresh-button');
+      if (refreshButtons.length > 0) {
+        refreshButtons[refreshButtons.length - 1].addEventListener('click', () => {
+          // リフレッシュボタンがクリックされたら、初期値フラグをリセット
+          initialPromptSet = false;
+          // 少し待ってから初期値を再設定
+          setTimeout(setInitialPrompt, 500);
+        });
+      }
+    });
+  }
+}
+
 // 削除ボタンを追加する関数
 function addDeleteButton() {
   const allSourcesSpan = document.querySelector('span[name=allsources]');
@@ -130,6 +148,7 @@ const observer = new MutationObserver((mutations) => {
     if (mutation.addedNodes.length) {
       addDeleteButton();
       setInitialPrompt();
+      observeRefreshButton();
     }
   });
 });
@@ -143,6 +162,7 @@ observer.observe(document.body, {
 // 初期実行
 addDeleteButton();
 setInitialPrompt();
+observeRefreshButton();
 
 // メッセージをバックグラウンドスクリプトに送信
 chrome.runtime.sendMessage({ type: 'contentScriptLoaded' }, (response) => {
