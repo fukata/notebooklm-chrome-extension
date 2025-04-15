@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "NotebookLM Chrome Extension",
+  "version": "1.0",
+  "description": "NotebookLM Chrome Extension",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src 'self' https://ogs.google.com/;"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://notebooklm.google.com/notebook/*"],
+      "js": ["content.js"]
+    }
+  ]
+} 
