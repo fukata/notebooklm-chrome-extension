@@ -37,6 +37,18 @@ function addDeleteButton() {
         // チェックされた要素を取得
         const checkedElements = document.querySelectorAll('.single-source-container mat-checkbox input[type=checkbox]:checked');
         
+        // チェックされた要素の数が0の場合は処理を中断
+        if (checkedElements.length === 0) {
+          window.alert('削除する項目が選択されていません。');
+          return;
+        }
+
+        // 確認ダイアログを表示
+        const confirmed = window.confirm(`${checkedElements.length}件の項目を削除します。よろしいですか？`);
+        if (!confirmed) {
+          return;
+        }
+
         // チェックされた要素の情報をログに出力
         for (const [index, checkbox] of checkedElements.entries()) {
           // 少し待機
