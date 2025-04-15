@@ -1,0 +1,27 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create ZIP
+        run: |
+          zip -r notebooklm-chrome-extension.zip content.js popup.html popup.js manifest.json
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: notebooklm-chrome-extension.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
