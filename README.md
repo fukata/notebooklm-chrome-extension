@@ -2,6 +2,8 @@
 
 NotebookLMのソース管理を効率化するChrome拡張機能です。
 
+[Screencast from 2025-04-15 19-56-43.webm](https://github.com/user-attachments/assets/c4e5d7e1-bccc-45dc-a445-e3c10bb9c6c5)
+
 ## 機能
 
 - 複数のソースを一括で削除する機能
