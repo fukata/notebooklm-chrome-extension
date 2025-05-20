@@ -53,7 +53,7 @@ def main
   chapter_titles = File.readlines(title_file, chomp: true).map(&:strip).reject(&:empty?)
 
   # ディレクトリ内のwavファイル一覧を取得（ソートして順番を揃える）
-  wav_files = Dir.glob(File.join(wav_dir, '*.wav')).sort
+  wav_files = `ls -tr #{File.join(wav_dir, '*.wav')}`.split("\n")
 
   if chapter_titles.length != wav_files.length
     puts "章タイトル数(#{chapter_titles.length})とwavファイル数(#{wav_files.length})が一致しません。"
@@ -75,4 +75,4 @@ def main
   end
 end
 
-main if __FILE__ == $0 
+main if __FILE__ == $0
