@@ -22,6 +22,10 @@ def parse_options
       options[:file_title] = title
     end
 
+    opts.on("-c", "--chapter-titles FILE", "チャプタータイトル一覧ファイル（1行1タイトル、wavファイル順）") do |file|
+      options[:chapter_titles_file] = File.expand_path(file)
+    end
+
     opts.on("-h", "--help", "Show this help message") do
       puts opts
       exit
@@ -55,7 +59,7 @@ def get_duration(file_path)
   output.to_f
 end
 
-def build_chapters_ffmetadata(wav_files, file_title = nil)
+def build_chapters_ffmetadata(wav_files, file_title = nil, chapter_titles = nil)
   start_time = 0.0
   lines = [";FFMETADATA1"]
   lines << "title=#{file_title}" if file_title
@@ -64,7 +68,11 @@ def build_chapters_ffmetadata(wav_files, file_title = nil)
     duration = get_duration(file)
     start_ms = (start_time * 1000).to_i
     end_ms = ((start_time + duration) * 1000).to_i
-    title = File.basename(file, ".wav")
+    title = if chapter_titles && chapter_titles[index]
+      chapter_titles[index].strip
+    else
+      File.basename(file, ".wav")
+    end
 
     lines << "[CHAPTER]"
     lines << "TIMEBASE=1/1000"
@@ -110,11 +118,23 @@ def main
   input_dir = options[:input_dir]
   output_path = options[:output_file]
   file_title = options[:file_title]
+  chapter_titles = nil
+
+  if options[:chapter_titles_file]
+    unless File.exist?(options[:chapter_titles_file])
+      abort("Error: chapter titles file does not exist: #{options[:chapter_titles_file]}")
+    end
+    chapter_titles = File.readlines(options[:chapter_titles_file], chomp: true)
+  end
 
   input_files = Dir.glob(File.join(input_dir, "*.wav")).sort
   abort("No .wav files found in #{input_dir}") if input_files.empty?
 
-  chapter_lines = build_chapters_ffmetadata(input_files, file_title)
+  if chapter_titles && chapter_titles.size < input_files.size
+    abort("Error: チャプタータイトルの数がwavファイル数より少ないです")
+  end
+
+  chapter_lines = build_chapters_ffmetadata(input_files, file_title, chapter_titles)
 
   # チャプター情報を一時ファイルに保存
   chapter_file = File.open(File.join(input_dir, 'chapters.txt'), 'w')
