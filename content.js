@@ -178,6 +178,10 @@ function addBulkGenerateButton() {
         dialog.style.zIndex = '9999';
         dialog.style.minWidth = '320px';
 
+        const focusText = `・第$n章について焦点を当ててください。
+・冒頭に章のタイトルを読み上げてください。
+`;
+
         // フォーム内容
         dialog.innerHTML = `
           <div style="font-size: 20px; font-weight: bold; margin-bottom: 18px; color: #222;">一括生成</div>
@@ -188,7 +192,7 @@ function addBulkGenerateButton() {
             <label style='color: #222; font-weight: 500;'>終了の章：<input type="number" class="bulk-generate-end" style="width: 100px; margin-left: 8px; padding: 4px; border: 1px solid #bbb; border-radius: 4px; color: #222; background: #fff;"></label>
           </div>
           <div style="margin-bottom: 8px;">
-            <label style='color: #222; font-weight: 500;'>焦点内容：<br><textarea class="bulk-generate-focus" rows="4" style="width: 100%; margin-top: 4px; padding: 6px; border: 1px solid #bbb; border-radius: 4px; color: #222; background: #fff;">$n章にのみ焦点を当ててください。</textarea></label>
+            <label style='color: #222; font-weight: 500;'>焦点内容：<br><textarea class="bulk-generate-focus" rows="4" style="width: 100%; margin-top: 4px; padding: 6px; border: 1px solid #bbb; border-radius: 4px; color: #222; background: #fff;">${focusText}</textarea></label>
           </div>
           <div style="margin-bottom: 10px; color: #666; font-size: 13px;">※ <code>$n</code> は章番号で置換されます</div>
           <div style="text-align: right;">k
@@ -204,10 +208,11 @@ function addBulkGenerateButton() {
 
         dialog.querySelector('.bulk-generate-ok').addEventListener('click', () => {
           // 入力値を取得して変数に保存
-          const startChapter = dialog.querySelector('.bulk-generate-start').value;
-          const endChapter = dialog.querySelector('.bulk-generate-end').value;
+          const startChapter = parseInt(dialog.querySelector('.bulk-generate-start').value);
+          const endChapter = parseInt(dialog.querySelector('.bulk-generate-end').value);
           const focusText = dialog.querySelector('.bulk-generate-focus').value;
           const currentChapter = startChapter;
+          const processedNum = 0;
           const processing = false; // 生成中かどうかのフラグ
 
           // 必要に応じてグローバル変数やwindowオブジェクトに保存も可能
@@ -217,6 +222,7 @@ function addBulkGenerateButton() {
             endChapter,
             focusText,
             currentChapter,
+            processedNum,
             processing
           };
 
@@ -232,50 +238,54 @@ function addBulkGenerateButton() {
 }
 
 // OKボタンでダイアログを閉じて .custom-audio .customize-button をクリック
-function handleBulkGenerateOk() {
+async function handleBulkGenerateOk() {
   console.log("handleBulkGenerateOk. bulkGenerateInput: %o", window.bulkGenerateInput);
 
+  window.bulkGenerateInput.currentChapter = window.bulkGenerateInput.startChapter + window.bulkGenerateInput.processedNum;
+
+  if (window.bulkGenerateInput.currentChapter > window.bulkGenerateInput.endChapter) {
+    console.log("bulkGenerateInput reset");
+    window.bulkGenerateInput = null;
+    alert("一括生成が完了しました。");
+    return;
+  }
+
   const customizeBtn = document.querySelector('.custom-audio .customize-button');
-  if (customizeBtn) {
-    customizeBtn.click();
+  if (!customizeBtn) {
+    return;
+  }
 
-    setTimeout(() => {
-      const focusInput = document.querySelector('.episode-focus-input');
-      console.log("focusInput: %o, bulkGenerateInput: %o", focusInput, window.bulkGenerateInput);
-      if (focusInput && window.bulkGenerateInput) {
-        if (window.bulkGenerateInput.currentChapter > window.bulkGenerateInput.endChapter) {
-          console.log("bulkGenerateInput reset");
-          window.bulkGenerateInput = null;
-          return;
-        }
+  customizeBtn.click();
 
-        setTimeout(() => {
-          // $n を開始の章番号で置換
-          const replaced = window.bulkGenerateInput.focusText.replace(/\$n/g, window.bulkGenerateInput.currentChapter);
-          console.log("replaced: %o", replaced);
-          focusInput.value = replaced;
-          triggerAngularEvent(focusInput, 'input');
-        
-          // 生成ボタンをクリック
-          const generateBtn = document.querySelector('.custom-audio .generate-button');
-          if (generateBtn) {
-            window.bulkGenerateInput.processing = true;
-            triggerAngularEvent(generateBtn, 'click');
+  await sleep(500);
+  const focusInput = document.querySelector('.episode-focus-input');
+  console.log("focusInput: %o, bulkGenerateInput: %o", focusInput, window.bulkGenerateInput);
 
-            // 閉じるボタンをクリック
-            const closeBtn = document.querySelector('.producer-close-button');
-            if (closeBtn) {
-              triggerAngularEvent(closeBtn, 'click');
-            }
+  if (!focusInput) {
+    return;
+  }
+  
+  // $n を開始の章番号で置換
+  const replaced = window.bulkGenerateInput.focusText.replace(/\$n/g, window.bulkGenerateInput.currentChapter);
+  console.log("replaced: %o", replaced);
+  focusInput.value = replaced;
+  triggerAngularEvent(focusInput, 'input');
+  triggerAngularEvent(focusInput, 'change');
+  triggerAngularEvent(focusInput, 'blur');
+  await sleep(500);
 
-            window.bulkGenerateInput.currentChapter++;
+  // 生成ボタンをクリック
+  const generateBtn = document.querySelector('.producer-actions .generate-button');
+  if (generateBtn) {
+    window.bulkGenerateInput.processing = true;
+    triggerAngularEvent(generateBtn, 'click');
 
-            // 生成されるのを監視する
-            monitorAudioControlsMenu();
-          }
-        }, 500);
-      }
-    }, 500);
+    await sleep(10000);
+
+    // 生成されるのを監視する
+    monitorAudioControlsMenu();
+
+    window.bulkGenerateInput.processedNum++;
   }
 }
 
@@ -295,6 +305,8 @@ async function monitorAudioControlsMenu() {
       // audioButtonの親要素から a.mat-mdc-menu-content を探す
       const downloadContent = document.querySelector('.cdk-overlay-pane a.mat-mdc-menu-item');
       if (downloadContent) {
+        const chapterNumber = window.bulkGenerateInput.currentChapter.toString().padStart(2, '0');
+        downloadContent.setAttribute('download', `${downloadContent.getAttribute('download')}_${chapterNumber}`);
         downloadContent.click();
       }
 
